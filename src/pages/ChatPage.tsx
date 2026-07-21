@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { generateReply, replyDelay, SUGGESTED_PROMPTS, type ChatMessage } from '@/lib/aiEngine';
 
+const STORAGE_KEY = 'bbai-chat-messages';
+
 const WELCOME: ChatMessage = {
   id: 'welcome',
   role: 'assistant',
@@ -18,6 +20,19 @@ const WELCOME: ChatMessage = {
     "Hello! I'm BusinessBuddy AI, your smart assistant for business growth. I can help you with business ideas, marketing strategy, branding, sales, product descriptions, social media captions, and customer engagement. What would you like to work on today?",
   timestamp: new Date().toISOString(),
 };
+
+function loadMessages(): ChatMessage[] {
+  if (typeof window === 'undefined') return [WELCOME];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [WELCOME];
+    const parsed = JSON.parse(raw) as ChatMessage[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return [WELCOME];
+    return parsed;
+  } catch {
+    return [WELCOME];
+  }
+}
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -35,7 +50,7 @@ function formatDateTime(iso: string): string {
 }
 
 export function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
+  const [messages, setMessages] = useState<ChatMessage[]>(loadMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [now, setNow] = useState(new Date().toISOString());
@@ -56,6 +71,15 @@ export function ChatPage() {
     const el = scrollRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // ignore quota or serialization errors
+    }
+  }, [messages]);
 
   // Cleanup pending typing timer on unmount
   useEffect(() => {
@@ -109,7 +133,13 @@ export function ChatPage() {
   const clearChat = () => {
     if (typingTimer.current) clearTimeout(typingTimer.current);
     setIsTyping(false);
-    setMessages([{ ...WELCOME, id: 'welcome', timestamp: new Date().toISOString() }]);
+    const fresh = [{ ...WELCOME, id: 'welcome', timestamp: new Date().toISOString() }];
+    setMessages(fresh);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+    } catch {
+      // ignore
+    }
     setSaved(false);
     inputRef.current?.focus();
   };
