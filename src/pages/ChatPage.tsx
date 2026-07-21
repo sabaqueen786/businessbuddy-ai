@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { generateReply, replyDelay, SUGGESTED_PROMPTS, type ChatMessage } from '@/lib/aiEngine';
 
-const STORAGE_KEY = 'bbai-chat-messages';
+const STORAGE_KEY = 'businessbuddy-chat-history';
 
 const WELCOME: ChatMessage = {
   id: 'welcome',
@@ -24,13 +24,31 @@ const WELCOME: ChatMessage = {
 function loadMessages(): ChatMessage[] {
   if (typeof window === 'undefined') return [WELCOME];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [WELCOME];
-    const parsed = JSON.parse(raw) as ChatMessage[];
+    const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) return [WELCOME];
-    return parsed;
+    // Validate every message has the required fields
+    const valid = parsed.filter(
+      (m) =>
+        m &&
+        typeof m.id === 'string' &&
+        typeof m.role === 'string' &&
+        typeof m.content === 'string' &&
+        typeof m.timestamp === 'string',
+    );
+    return valid.length > 0 ? (valid as ChatMessage[]) : [WELCOME];
   } catch {
     return [WELCOME];
+  }
+}
+
+function saveMessages(msgs: ChatMessage[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs));
+  } catch {
+    // ignore quota or serialization errors
   }
 }
 
@@ -74,11 +92,7 @@ export function ChatPage() {
 
   // Persist messages to localStorage whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-    } catch {
-      // ignore quota or serialization errors
-    }
+    saveMessages(messages);
   }, [messages]);
 
   // Cleanup pending typing timer on unmount
@@ -98,7 +112,9 @@ export function ChatPage() {
       content: trimmed,
       timestamp: new Date().toISOString(),
     };
-    setMessages((m) => [...m, userMsg]);
+    const withUser = [...messages, userMsg];
+    setMessages(withUser);
+    saveMessages(withUser);
     setInput('');
     setIsTyping(true);
     setSaved(false);
@@ -113,7 +129,9 @@ export function ChatPage() {
         content: reply,
         timestamp: new Date().toISOString(),
       };
-      setMessages((m) => [...m, aiMsg]);
+      const withAi = [...withUser, aiMsg];
+      setMessages(withAi);
+      saveMessages(withAi);
       setIsTyping(false);
     }, delay);
   };
@@ -135,11 +153,7 @@ export function ChatPage() {
     setIsTyping(false);
     const fresh = [{ ...WELCOME, id: 'welcome', timestamp: new Date().toISOString() }];
     setMessages(fresh);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
-    } catch {
-      // ignore
-    }
+    saveMessages(fresh);
     setSaved(false);
     inputRef.current?.focus();
   };
