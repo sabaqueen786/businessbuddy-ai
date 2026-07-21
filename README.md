@@ -86,10 +86,7 @@ BusinessBuddy AI makes business guidance easier and more accessible. Instead of 
 ### About, Contact, and FAQ Pages
 ## How to Run Locally
 
-1. Clone the repository:
 
-```bash
-git clone https://github.com/sabaqueen786/businessbuddy-ai.git
 2. Open the project folder:
 
 ```bash
@@ -99,10 +96,6 @@ npm install
 Start the development server:
 npm run dev
 Open the local URL shown in the terminal
-⚠️ **Important:** Jo ` ```bash ` aur ` ``` ` wali lines hain, woh bhi copy karni hain. Yeh code ko alag box mein dikhane ke liye hoti hain.
-
-Abhi **Project Repository wala section paste na karein**. Pehle yeh **How to Run Locally** section complete karein. Phir mujhe bata dein, main next step dungi.
-## Project Repository
 
 🔗 https://github.com/sabaqueen786/businessbuddy-ai
 
